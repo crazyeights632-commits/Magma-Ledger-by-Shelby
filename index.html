@@ -168,36 +168,13 @@
 <div id="app"></div>
 
 <!-- Sound played whenever a player crosses 100 and is knocked out of an American Rummy game -->
-<audio id="out-sound" preload="auto">
-  <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAAA=" type="audio/wav">
-</audio>
+<audio id="out-sound" src="out-sound.mp3" preload="auto"></audio>
 
 <!-- Sound played whenever points are entered in American Rummy -->
-<audio id="points-sound" preload="auto">
-  <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAAA=" type="audio/wav">
-</audio>
+<audio id="points-sound" src="points-sound.mp3" preload="auto"></audio>
 
 <script>
 'use strict';
-
-/* Generate simple beep sounds */
-function generateBeepSound(frequency, duration) {
-  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
-  
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
-  
-  oscillator.frequency.value = frequency;
-  oscillator.type = 'sine';
-  
-  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
-  
-  oscillator.start(audioContext.currentTime);
-  oscillator.stop(audioContext.currentTime + duration);
-}
 
 /* ---------------- storage ---------------- */
 const STORAGE_KEY = 'magmaLedgerData_v1';
@@ -272,14 +249,16 @@ function activePlayers(game){
   return game.players.filter(p => game.cumulative[p] < 100);
 }
 function playOutSound(){
-  try {
-    generateBeepSound(880, 0.2); // High pitch beep (A5)
-  } catch(e) {}
+  const audio = document.getElementById('out-sound');
+  if(!audio) return;
+  audio.currentTime = 0;
+  audio.play().catch(()=>{}); // ignore if browser blocks autoplay before any interaction
 }
 function playPointsSound(){
-  try {
-    generateBeepSound(440, 0.1); // Medium pitch beep (A4)
-  } catch(e) {}
+  const audio = document.getElementById('points-sound');
+  if(!audio) return;
+  audio.currentTime = 0;
+  audio.play().catch(()=>{}); // ignore if browser blocks autoplay before any interaction
 }
 function finalizeRummy(game){
   recomputeCumulative(game);
