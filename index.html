@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magma Ledger — Card Game Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%2307040c'/%3E%3Ctext x='50' y='69' font-size='58' text-anchor='middle' fill='%23ff2e9a'%3E%E2%99%A0%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Monoton&family=Bebas+Neue&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#07040c;
+    --void-2:#150c24;
+    --panel:rgba(21,12,36,0.72);
+    --panel-solid:#150c24;
+    --raised:rgba(255,255,255,0.045);
+    --line:rgba(255,255,255,0.10);
+    --text:#f3ecff;
+    --text-dim:#a696c4;
+    --muted:#786d94;
+    --magenta:#ff2e9a;
+    --magenta-dim:#c21f74;
+    --cyan:#29f0ff;
+    --cyan-dim:#1aa9b8;
+    --gold:#ffcc33;
+    --gold-dim:#cc9900;
+    --green:#3dffa4;
+    --red:#ff3d5e;
+    --glow-magenta:0 0 6px var(--magenta),0 0 18px rgba(255,46,154,.5),0 0 42px rgba(255,46,154,.22);
+    --glow-cyan:0 0 6px var(--cyan),0 0 18px rgba(41,240,255,.5),0 0 42px rgba(41,240,255,.22);
+    --glow-gold:0 0 6px var(--gold),0 0 18px rgba(255,204,51,.5),0 0 42px rgba(255,204,51,.22);
+    --glow-red:0 0 6px var(--red),0 0 16px rgba(255,61,94,.5);
+    --shadow:0 10px 34px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -5%, rgba(255,46,154,.16), transparent 60%),
+      radial-gradient(ellipse 900px 600px at 100% 10%, rgba(41,240,255,.14), transparent 60%),
+      radial-gradient(ellipse 1200px 800px at 50% 120%, rgba(255,204,51,.08), transparent 60%),
+      var(--void);
+    background-attachment:fixed;
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    position:relative;
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size:42px 42px;
+    mask-image:radial-gradient(ellipse 900px 700px at 50% 0%, #000 0%, transparent 75%);
+  }
+  #app{ max-width:960px; margin:0 auto; padding:28px 20px 80px; position:relative; z-index:1; }
+
+  h1,h2,h3{ font-family:'Fraunces',serif; margin:0 0 4px; }
+  h2,h3{ color:var(--text); text-shadow:0 0 14px rgba(255,204,51,.18); }
+  .eyebrow{
+    text-transform:uppercase; letter-spacing:.14em; font-size:12px;
+    color:var(--cyan); font-weight:700; margin-bottom:6px; text-shadow:0 0 8px rgba(41,240,255,.5);
+  }
+  .brand{
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px;
+    margin-bottom:32px; color:var(--text);
+  }
+  .brand h1{
+    font-family:'Monoton',cursive; font-size:32px; font-weight:400; font-style:normal;
+    letter-spacing:.03em; margin:0;
+    color:var(--magenta);
+    text-shadow:
+      0 0 6px var(--magenta),0 0 14px var(--magenta),
+      0 0 34px rgba(255,46,154,.6), 0 0 70px rgba(255,46,154,.3);
+    animation:neonFlicker 7s infinite;
+  }
+  .brand span.tag{
+    color:var(--gold); font-size:12.5px; letter-spacing:.06em; font-weight:600;
+    text-shadow:0 0 8px rgba(255,204,51,.5);
+  }
+  @keyframes neonFlicker{
+    0%,4%,8%,20%,22%,54%,58%,100%{ opacity:1; }
+    5%,7%,21%,56%{ opacity:.4; }
+    6%{ opacity:.85; }
+  }
+
+  nav.tabs{ display:flex; gap:9px; flex-wrap:wrap; margin-bottom:26px; }
+  nav.tabs button{
+    background:rgba(255,255,255,0.03); border:1.5px solid var(--line);
+    color:var(--text-dim); padding:9px 17px; border-radius:999px; font-family:'Bebas Neue',sans-serif;
+    font-size:15px; font-weight:400; letter-spacing:.06em; cursor:pointer; transition:all .15s ease;
+  }
+  nav.tabs button:hover{ border-color:var(--cyan); color:var(--cyan); box-shadow:var(--glow-cyan); }
+  nav.tabs button.active{
+    background:linear-gradient(135deg,var(--magenta),var(--gold));
+    color:#1a0a12; border-color:transparent; box-shadow:var(--glow-magenta);
+  }
+
+  .card{
+    background:var(--panel);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    border-radius:16px;
+    border:1px solid var(--line);
+    box-shadow:var(--shadow);
+    padding:24px;
+    position:relative;
+    margin-bottom:20px;
+    overflow:hidden;
+  }
+  .card::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg,var(--magenta),var(--cyan),var(--gold));
+    box-shadow:0 0 12px rgba(255,46,154,.5);
+  }
+  .tile-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:18px; margin-bottom:24px; }
+  .tile{
+    background:var(--panel-solid); border-radius:16px; border:1.5px solid var(--line);
+    box-shadow:var(--shadow); padding:22px; cursor:pointer; position:relative; overflow:hidden;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; min-height:150px;
+  }
+  .tile::before{ content:""; position:absolute; inset:7px; border:1px solid rgba(255,255,255,.06); border-radius:11px; pointer-events:none; }
+  .tile.spade:hover, .tile.club:hover{ transform:translateY(-4px); border-color:var(--cyan); box-shadow:var(--glow-cyan); }
+  .tile.heart:hover, .tile.diamond:hover{ transform:translateY(-4px); border-color:var(--magenta); box-shadow:var(--glow-magenta); }
+  .tile .pip{ font-size:44px; line-height:1; }
+  .tile.spade .pip, .tile.club .pip{ color:var(--cyan); text-shadow:0 0 10px var(--cyan),0 0 26px rgba(41,240,255,.5); }
+  .tile.heart .pip, .tile.diamond .pip{ color:var(--magenta); text-shadow:0 0 10px var(--magenta),0 0 26px rgba(255,46,154,.5); }
+  .tile h3{ font-size:22px; margin-top:10px; }
+  .tile p{ margin:4px 0 0; font-size:13.5px; color:var(--text-dim); }
+  .corner{ position:absolute; font-size:14px; font-weight:700; font-family:'Fraunces',serif; color:rgba(255,255,255,.35); }
+  .corner.tl{ top:10px; left:14px; } .corner.br{ bottom:10px; right:14px; transform:rotate(180deg); }
+
+  label{ display:block; font-size:12px; font-weight:600; color:var(--text-dim); margin:14px 0 5px; text-transform:uppercase; letter-spacing:.06em;}
+  input[type=text], input[type=number], input[type=date]{
+    width:100%; padding:10px 12px; border-radius:8px; border:1.5px solid var(--line);
+    background:rgba(0,0,0,.35); font-family:'Inter',sans-serif; font-size:14.5px; color:var(--text);
+  }
+  input::placeholder{ color:var(--muted); }
+  input:focus{ outline:2px solid var(--gold); outline-offset:1px; box-shadow:var(--glow-gold); }
+  .row{ display:flex; gap:14px; flex-wrap:wrap; }
+  .row > div{ flex:1; min-width:150px; }
+  .players-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+
+  .roster-select{ display:flex; flex-wrap:wrap; gap:9px; margin:10px 0 4px; }
+  .chip{
+    position:relative; padding:9px 32px 9px 15px; border-radius:999px;
+    border:1.5px solid var(--line); background:rgba(255,255,255,.03); font-weight:600; font-size:13.5px;
+    color:var(--text-dim);
+    cursor:pointer; user-select:none; transition:background .12s ease, border-color .12s ease, box-shadow .12s ease, color .12s ease;
+  }
+  .chip.selected{ background:var(--gold); border-color:var(--gold); color:#241505; box-shadow:var(--glow-gold); }
+  .chip.static{ cursor:default; color:var(--text); }
+  .chip-x{
+    position:absolute; right:9px; top:50%; transform:translateY(-50%);
+    font-size:11px; opacity:.5; cursor:pointer; padding:2px;
+  }
+  .chip-x:hover{ opacity:1; color:var(--red); text-shadow:var(--glow-red); }
+  .add-player-row{ display:flex; gap:8px; margin-top:12px; max-width:360px; }
+  .add-player-row input{ flex:1; }
+  .add-player-row button{ white-space:nowrap; }
+  .count-label{ font-size:12px; font-weight:500; text-transform:none; letter-spacing:0; color:var(--muted); margin-left:6px; }
+
+  button.btn{
+    font-family:'Bebas Neue',sans-serif; font-weight:400; font-size:16px; letter-spacing:.04em;
+    padding:11px 22px; border-radius:9px; border:none; cursor:pointer; margin-top:18px;
+    transition:box-shadow .15s ease, transform .1s ease, background .15s ease;
+  }
+  button.btn:active{ transform:translateY(1px); }
+  button.btn.primary{ background:linear-gradient(135deg,var(--magenta),var(--cyan)); color:#0a0512; }
+  button.btn.primary:hover{ box-shadow:var(--glow-magenta); }
+  button.btn.gold{ background:var(--gold); color:#241505; }
+  button.btn.gold:hover{ box-shadow:var(--glow-gold); }
+  button.btn.ghost{ background:transparent; color:var(--cyan); border:1.5px solid var(--cyan); }
+  button.btn.ghost:hover{ box-shadow:var(--glow-cyan); background:rgba(41,240,255,.07); }
+  button.btn.danger{ background:transparent; color:var(--red); border:1.5px solid var(--red); }
+  button.btn.danger:hover{ box-shadow:var(--glow-red); background:rgba(255,61,94,.07); }
+  button.btn.small{ padding:6px 14px; font-size:14px; margin-top:0; }
+  .btn-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+  .round-banner{ display:flex; align-items:center; gap:14px; margin-bottom:18px; }
+  .round-banner .suit{ font-size:38px; color:var(--cyan); text-shadow:0 0 10px var(--cyan),0 0 28px rgba(41,240,255,.5); }
+  .round-banner .suit.heart, .round-banner .suit.diamond{ color:var(--magenta); text-shadow:0 0 10px var(--magenta),0 0 28px rgba(255,46,154,.5); }
+  .winner-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin:10px 0 6px; }
+  .player-btn{
+    background:rgba(255,255,255,.03); border:1.5px solid var(--line); border-radius:10px; padding:16px 10px;
+    text-align:center; font-weight:700; font-family:'Fraunces',serif; font-size:16px; cursor:pointer; color:var(--text);
+    transition:border-color .12s ease, box-shadow .12s ease;
+  }
+  .player-btn:hover{ border-color:var(--gold); box-shadow:var(--glow-gold); }
+
+  table{ width:100%; border-collapse:collapse; font-size:14px; }
+  th,td{ padding:8px 10px; text-align:center; border-bottom:1px solid var(--line); }
+  th{ font-family:'Inter',sans-serif; text-transform:uppercase; font-size:11px; letter-spacing:.05em; color:var(--text-dim); }
+  td.name, th.name{ text-align:left; font-weight:600; color:var(--text); }
+  .mono{ font-family:'JetBrains Mono',monospace; color:var(--text); }
+  .pos{ color:var(--green); font-weight:700; text-shadow:0 0 8px rgba(61,255,164,.5); }
+  .neg{ color:var(--red); font-weight:700; text-shadow:var(--glow-red); }
+  .muted{ color:var(--muted); }
+  .tag-out{ background:var(--red); color:#1a0007; font-size:10.5px; padding:2px 7px; border-radius:5px; letter-spacing:.03em; font-weight:700; box-shadow:0 0 8px rgba(255,61,94,.5); }
+  .tag-win{ background:var(--gold); color:#241505; font-size:10.5px; padding:2px 7px; border-radius:5px; font-weight:700; letter-spacing:.03em; box-shadow:var(--glow-gold); }
+  .scroll-x{ overflow-x:auto; }
+
+  .history-item{ border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; background:rgba(255,255,255,.02); }
+  .history-item .meta{ font-size:13px; color:var(--text-dim); }
+  .leaderboard-row{ display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); }
+  .empty{ text-align:center; padding:40px 10px; color:var(--text-dim); }
+  .empty .pip{ font-size:40px; opacity:.4; margin-bottom:10px; color:var(--cyan); }
+  .note{ background:rgba(255,204,51,.06); border-left:3px solid var(--gold); padding:12px 14px; border-radius:6px; font-size:13px; color:var(--text-dim); margin-top:14px; }
+  details summary{ cursor:pointer; font-weight:600; color:var(--cyan); font-size:13.5px; }
+  .footer-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:30px; }
+  .footer-actions button{ background:none; border:none; color:rgba(255,255,255,0.4); font-size:12px; cursor:pointer; text-decoration:underline; }
+  .footer-actions button:hover{ color:var(--cyan); }
+  .founder-note{ text-align:center; margin-top:44px; padding-top:22px; border-top:1px solid rgba(255,255,255,0.1); }
+  .founder-quote{ font-family:'Fraunces',serif; font-style:italic; font-weight:600; font-size:17px; color:var(--gold); margin:0 0 6px; text-shadow:0 0 12px rgba(255,204,51,.4); }
+  .founder-quote span{ font-style:normal; font-family:'Inter',sans-serif; font-weight:600; font-size:12px; color:rgba(255,255,255,0.5); letter-spacing:.03em; }
+  .founder-copyright{ font-size:11.5px; color:rgba(255,255,255,0.35); margin:0; letter-spacing:.02em; }
+
+  /* Winner Popup Styles */
+  .modal-overlay{
+    position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(4,2,8,0.85);
+    backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center; z-index:9999;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn{
+    from{ opacity:0; }
+    to{ opacity:1; }
+  }
+  .winner-modal{
+    background:var(--panel-solid);
+    border:1.5px solid var(--gold);
+    border-radius:20px; padding:40px 30px; text-align:center;
+    box-shadow:0 0 20px rgba(255,204,51,.4), 0 0 60px rgba(255,46,154,.25), 0 20px 60px rgba(0,0,0,.8);
+    max-width:500px; width:90%;
+    animation: popUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes popUp{
+    from{ transform:scale(0.7) translateY(20px); opacity:0; }
+    to{ transform:scale(1) translateY(0); opacity:1; }
+  }
+  .winner-modal h1{
+    font-size:34px; color:var(--magenta); margin-bottom:10px; font-style:normal;
+    font-family:'Monoton',cursive; font-weight:400;
+    text-shadow:0 0 8px var(--magenta),0 0 24px rgba(255,46,154,.6),0 0 50px rgba(255,46,154,.3);
+    animation:neonFlicker 3s infinite;
+  }
+  .winner-modal .winner-name{
+    font-size:42px; font-weight:700; color:var(--gold); margin-bottom:20px;
+    font-family:'Fraunces',serif;
+    text-shadow:0 0 10px var(--gold),0 0 30px rgba(255,204,51,.6);
+  }
+  .winner-modal .quote{
+    font-size:18px; font-style:italic; color:var(--text-dim); margin:20px 0;
+    line-height:1.6; font-family:'Fraunces',serif;
+  }
+  .winner-modal .trophy{ font-size:60px; margin:20px 0; animation:bounce 1s infinite; filter:drop-shadow(0 0 18px rgba(255,204,51,.6)); }
+  @keyframes bounce{
+    0%, 100%{ transform:translateY(0); }
+    50%{ transform:translateY(-20px); }
+  }
+  .winner-modal button{
+    margin-top:30px;
+  }
+
+  @media (max-width:520px){
+    .brand h1{ font-size:22px; }
+    table{ font-size:12.5px; }
+    th,td{ padding:6px; }
+    .winner-modal{
+      padding:30px 20px;
+    }
+    .winner-modal h1{
+      font-size:26px;
+    }
+    .winner-modal .winner-name{
+      font-size:32px;
+    }
+    .winner-modal .trophy{
+      font-size:48px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .brand h1, .winner-modal h1, .winner-modal .trophy{ animation:none; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Sound played whenever a player crosses 100 and is knocked out of an American Rummy game -->
+<audio id="out-sound" src="out-sound.mp3" preload="auto"></audio>
+
+<!-- Sound played whenever points are entered in American Rummy -->
+<audio id="points-sound" src="points-sound.mp3" preload="auto"></audio>
+
+<!-- Sound played when there's a winner in American Rummy -->
+<audio id="winner-sound" src="out-sound.mp3" preload="auto"></audio>
+
+<script>
+'use strict';
+
+/* ---------------- storage ---------------- */
+const STORAGE_KEY = 'magmaLedgerData_v1';
+const DEFAULT_ROSTER = ['Rahul','DP','Rajath','Dhanush','Divian','Manoj','PBoss'];
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return {setGames:[], rummyGames:[], roster:[...DEFAULT_ROSTER], lastSetPlayers:[], lastRummyPlayers:[]};
+    const parsed = JSON.parse(raw);
+    return {
+      setGames: parsed.setGames||[],
+      rummyGames: parsed.rummyGames||[],
+      roster: (parsed.roster && parsed.roster.length) ? parsed.roster : [...DEFAULT_ROSTER],
+      lastSetPlayers: parsed.lastSetPlayers||[],
+      lastRummyPlayers: parsed.lastRummyPlayers||[]
+    };
+  }catch(e){ return {setGames:[], rummyGames:[], roster:[...DEFAULT_ROSTER], lastSetPlayers:[], lastRummyPlayers:[]}; }
+}
+function saveData(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+let DATA = loadData();
+
+/* ---------------- app state ---------------- */
+let state = {
+  view: 'home',
+  setDraft: null,      // in-progress Set game
+  rummyDraft: null,    // in-progress Rummy game
+  lastFinishedSet: null,
+  lastFinishedRummy: null,
+  historyOpen: {}
+};
+
+const SUITS = ['♠','♥','♦','♣'];
+const SUIT_CLASS = ['spade','heart','diamond','club'];
+function fmt(n){
+  const sign = n < 0 ? '-' : (n>0 ? '+' : '');
+  return sign + '₹' + Math.abs(Math.round(n));
+}
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fmtDate(d){
+  const dt = new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------------- SET GAME LOGIC ---------------- */
+function computeSetResults(game){
+  const wins = {};
+  game.players.forEach(p => wins[p] = 0);
+  game.roundWinners.forEach(w => { if(w) wins[w]++; });
+  const pot = game.entryFee * game.players.length;
+  const paidPer = game.numRounds * game.entryFee;
+  return game.players.map(p => {
+    const w = wins[p];
+    const gross = w * pot;
+    const net = gross - paidPer;
+    return { name:p, wins:w, gross, paid:paidPer, net };
+  });
+}
+
+/* ---------------- RUMMY GAME LOGIC ---------------- */
+function recomputeCumulative(game){
+  const cum = {};
+  game.players.forEach(p => cum[p] = 0);
+  game.matches.forEach(m => {
+    Object.entries(m.scores).forEach(([name, pts]) => { cum[name] += Number(pts)||0; });
+  });
+  game.cumulative = cum;
+}
+function activePlayers(game){
+  return game.players.filter(p => game.cumulative[p] < 100);
+}
+function playOutSound(){
+  const audio = document.getElementById('out-sound');
+  if(!audio) return;
+  audio.currentTime = 0;
+  audio.play().catch(()=>{}); // ignore if browser blocks autoplay before any interaction
+}
+function playPointsSound(){
+  const audio = document.getElementById('points-sound');
+  if(!audio) return;
+  audio.currentTime = 0;
+  audio.play().catch(()=>{}); // ignore if browser blocks autoplay before any interaction
+}
+function playWinnerSound(){
+  const audio = document.getElementById('winner-sound');
+  if(!audio) return;
+  audio.currentTime = 0;
+  audio.play().catch(()=>{}); // ignore if browser blocks autoplay before any interaction
+}
+
+function showWinnerModal(winnerName){
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="winner-modal">
+      <h1>Congratulations!</h1>
+      <div class="trophy">🏆</div>
+      <div class="winner-name">${esc(winnerName)}</div>
+      <div class="quote">
+        "No Wife can endure a gambler;<br>Unless he is a WINNER"
+      </div>
+      <button class="btn gold" id="close-winner-modal">Continue</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  // Play winner sound
+  playWinnerSound();
+  
+  document.getElementById('close-winner-modal').onclick = () => {
+    modal.remove();
+  };
+}
+
+function finalizeRummy(game){
+  recomputeCumulative(game);
+  const minScore = Math.min(...game.players.map(p => game.cumulative[p]));
+  const winners = game.players.filter(p => game.cumulative[p] === minScore);
+  const pot = game.entryFee * game.players.length;
+  const share = pot / winners.length;
+  game.winners = winners;
+  game.pot = pot;
+  game.results = game.players.map(p => {
+    const isWinner = winners.includes(p);
+    const received = isWinner ? share : 0;
+    const net = received - game.entryFee;
+    return { name:p, finalScore: game.cumulative[p], winner: isWinner, received, net };
+  });
+  game.finished = true;
+}
+
+/* ---------------- RENDER ROOT ---------------- */
+function render(){
+  const app = document.getElementById('app');
+  let body = '';
+  if(state.view === 'home') body = renderHome();
+  else if(state.view === 'set-setup') body = renderSetSetup();
+  else if(state.view === 'set-play') body = renderSetPlay();
+  else if(state.view === 'set-summary') body = renderSetSummary(state.lastFinishedSet, {fromHistory:false});
+  else if(state.view === 'rummy-setup') body = renderRummySetup();
+  else if(state.view === 'rummy-play') body = renderRummyPlay();
+  else if(state.view === 'rummy-summary') body = renderRummySummary(state.lastFinishedRummy, {fromHistory:false});
+  else if(state.view === 'history') body = renderHistory();
+
+  app.innerHTML = `
+    <div class="brand">
+      <div><h1>♠ Magma Ledger</h1><span class="tag">Where the Core settles every score</span></div>
+    </div>
+    <nav class="tabs">
+      <button data-nav="home" class="${state.view==='home'?'active':''}">Home</button>
+      <button data-nav="set-setup" class="${state.view.startsWith('set')?'active':''}">The Set</button>
+      <button data-nav="rummy-setup" class="${state.view.startsWith('rummy')?'active':''}">American Rummy</button>
+      <button data-nav="history" class="${state.view==='history'?'active':''}">History &amp; Leaderboard</button>
+    </nav>
+    ${body}
+    <div class="founder-note">
+      <p class="founder-quote">&ldquo;I don't play the odds, I play the Man.&rdquo; <span>— Rahul</span></p>
+      <p class="founder-copyright">Shelby Company.Ltd Copyright (2026).</p>
+    </div>
+    <div class="footer-actions">
+      <button data-action="export">Export backup (.json)</button>
+      <button data-action="import">Import backup</button>
+      <button data-action="reset">Reset all data</button>
+    </div>
+    <input type="file" id="import-file" accept="application/json" style="display:none">
+  `;
+  bindGlobalEvents();
+  bindViewEvents();
+}
+
+function bindGlobalEvents(){
+  document.querySelectorAll('[data-nav]').forEach(btn=>{
+    btn.onclick = () => {
+      const v = btn.dataset.nav;
+      if(v==='set-setup') state.setDraft = null;
+      if(v==='rummy-setup') state.rummyDraft = null;
+      state.view = v; render();
+    };
+  });
+  const exportBtn = document.querySelector('[data-action="export"]');
+  if(exportBtn) exportBtn.onclick = exportData;
+  const importBtn = document.querySelector('[data-action="import"]');
+  const fileInput = document.getElementById('import-file');
+  if(importBtn) importBtn.onclick = () => fileInput.click();
+  if(fileInput) fileInput.onchange = importData;
+  const resetBtn = document.querySelector('[data-action="reset"]');
+  if(resetBtn) resetBtn.onclick = () => {
+    if(confirm('This will permanently delete all saved games from this browser. Continue?')){
+      DATA = {setGames:[], rummyGames:[]};
+      saveData(DATA);
+      state.view = 'home';
+      render();
+    }
+  };
+}
+
+function exportData(){
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'magma-ledger-backup-' + todayStr() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      if(!parsed.setGames || !parsed.rummyGames) throw new Error('bad format');
+      if(confirm('Import will merge this backup with your current data. Continue?')){
+        DATA.setGames = DATA.setGames.concat(parsed.setGames);
+        DATA.rummyGames = DATA.rummyGames.concat(parsed.rummyGames);
+        saveData(DATA);
+        state.view = 'history';
+        render();
+      }
+    }catch(err){ alert('That file does not look like a valid Magma Ledger backup.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+/* ---------------- HOME ---------------- */
+function renderHome(){
+  const gamesPlayed = DATA.setGames.length + DATA.rummyGames.length;
+  return `
+    <div class="tile-grid">
+      <div class="tile spade" data-nav="set-setup">
+        <span class="corner tl">♠<br>S</span><span class="corner br">♠<br>S</span>
+        <div class="pip">♠</div>
+        <h3>The Set</h3>
+        <p>Round-based game. Every round has one winner who takes the pot; everyone pays entry fee per round.</p>
+      </div>
+      <div class="tile diamond" data-nav="rummy-setup">
+        <span class="corner tl">♦<br>R</span><span class="corner br">♦<br>R</span>
+        <div class="pip">♦</div>
+        <h3>American Rummy</h3>
+        <p>Track points hand by hand. Cross 100 and you're out — last player standing takes the whole pot.</p>
+      </div>
+      <div class="tile club" data-nav="history">
+        <span class="corner tl">♣<br>H</span><span class="corner br">♣<br>H</span>
+        <div class="pip">♣</div>
+        <h3>History &amp; Leaderboard</h3>
+        <p>${gamesPlayed} game${gamesPlayed===1?'':'s'} logged so far. See who's up and who owes.</p>
+      </div>
+    </div>
+    <div class="card">
+      <details>
+        <summary>How the winnings are calculated</summary>
+        <div class="note">
+          <strong>The Set:</strong> each round, all players pay the entry fee into a pot. The round winner takes the whole pot.
+          A player's final net = (times won × entry fee × number of players) − (entry fee × total rounds played).<br><br>
+          <strong>American Rummy:</strong> everyone pays the entry fee once at the start. Points are tracked hand by hand;
+          a player is eliminated once their total reaches 100. The last player left takes the entire pot
+          (entry fee × number of players). Net = amount received − their own entry fee.
+        </div>
+      </details>
+    </div>
+  `;
+}
+
+function bindViewEvents(){
+  document.querySelectorAll('.tile[data-nav]').forEach(t=>{
+    t.onclick = () => { state.view = t.dataset.nav; render(); };
+  });
+  if(state.view==='set-setup') bindSetSetup();
+  if(state.view==='set-play') bindSetPlay();
+  if(state.view==='rummy-setup') bindRummySetup();
+  if(state.view==='rummy-play') bindRummyPlay();
+  if(state.view==='set-summary') bindSummaryButtons('set');
+  if(state.view==='rummy-summary') bindSummaryButtons('rummy');
+  if(state.view==='history') bindHistory();
+}
+
+function bindSummaryButtons(type){
+  const homeBtn = document.querySelector('[data-action="go-home"]');
+  if(homeBtn) homeBtn.onclick = () => { state.view='home'; render(); };
+  const newBtn = document.querySelector('[data-action="new-game"]');
+  if(newBtn) newBtn.onclick = () => { state.view = type+'-setup'; render(); };
+}
+
+/* ---------------- ROSTER PICKER (shared) ---------------- */
+// Renders a chip-based "who's playing" picker bound to DATA.roster, with an
+// inline add-player field. Returns {getSelectedOrdered} for the caller to read.
+function createRosterPicker(listId, addInputId, addBtnId, countLabelId, initialSelected){
+  const selected = new Set((initialSelected||[]).filter(n => DATA.roster.includes(n)));
+  const listEl = document.getElementById(listId);
+
+  function updateCount(){
+    const el = document.getElementById(countLabelId);
+    if(el) el.textContent = selected.size + (selected.size===1 ? ' selected' : ' selected');
+  }
+  function draw(){
+    listEl.innerHTML = DATA.roster.map(name => `
+      <div class="chip ${selected.has(name)?'selected':''}" data-name="${esc(name)}">
+        <span class="chip-label">${esc(name)}</span>
+        <span class="chip-x" data-remove="${esc(name)}" title="Remove from player list">✕</span>
+      </div>`).join('') || '<p class="muted">No players yet — add one below.</p>';
+
+    listEl.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        if(e.target.classList.contains('chip-x')) return;
+        const n = chip.dataset.name;
+        if(selected.has(n)) selected.delete(n); else selected.add(n);
+        draw(); updateCount();
+      });
+    });
+    listEl.querySelectorAll('.chip-x').forEach(x => {
+      x.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const n = x.dataset.remove;
+        if(confirm(`Remove "${n}" from the player list? Past game history won't be affected.`)){
+          DATA.roster = DATA.roster.filter(p => p !== n);
+          selected.delete(n);
+          saveData(DATA);
+          draw(); updateCount();
+        }
+      });
+    });
+  }
+  draw(); updateCount();
+
+  const addBtn = document.getElementById(addBtnId);
+  const addInput = document.getElementById(addInputId);
+  function addPlayer(){
+    const name = addInput.value.trim();
+    if(!name) return;
+    if(DATA.roster.some(p => p.toLowerCase() === name.toLowerCase())){ alert('That player is already in the list.'); return; }
+    DATA.roster.push(name);
+    selected.add(name);
+    saveData(DATA);
+    addInput.value = '';
+    draw(); updateCount();
+    addInput.focus();
+  }
+  addBtn.onclick = addPlayer;
+  addInput.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); addPlayer(); } });
+
+  return { getSelectedOrdered: () => DATA.roster.filter(n => selected.has(n)) };
+}
+
+/* ---------------- SET SETUP ---------------- */
+function renderSetSetup(){
+  return `
+  <div class="card">
+    <div class="eyebrow">New Game</div>
+    <h2>The Set — Setup</h2>
+    <div class="row">
+      <div><label>Date</label><input type="date" id="set-date" value="${state.setDraft?.date || todayStr()}"></div>
+      <div><label>Number of rounds</label><input type="number" id="set-numrounds" min="1" max="100" value="${state.setDraft?.numRounds || 5}"></div>
+      <div><label>Entry fee per round (₹, per player)</label><input type="number" id="set-entryfee" min="1" value="${state.setDraft?.entryFee || 10}"></div>
+    </div>
+    <label>Who's playing? <span class="count-label" id="set-count-label"></span></label>
+    <div class="roster-select" id="set-roster-list"></div>
+    <div class="add-player-row">
+      <input type="text" id="set-new-player" placeholder="Add a new player">
+      <button class="btn ghost small" id="set-add-player-btn" type="button">Add</button>
+    </div>
+    <button class="btn primary" id="set-start-btn">Start Game →</button>
+  </div>
+  `;
+}
+function bindSetSetup(){
+  const picker = createRosterPicker('set-roster-list','set-new-player','set-add-player-btn','set-count-label', DATA.lastSetPlayers);
+
+  document.getElementById('set-start-btn').onclick = () => {
+    const players = picker.getSelectedOrdered();
+    const numRounds = parseInt(document.getElementById('set-numrounds').value);
+    const entryFee = parseFloat(document.getElementById('set-entryfee').value);
+    const date = document.getElementById('set-date').value || todayStr();
+    if(players.length < 2){ alert('Select at least 2 players.'); return; }
+    if(!numRounds || numRounds<1){ alert('Enter a valid number of rounds.'); return; }
+    if(!entryFee || entryFee<=0){ alert('Enter a valid entry fee.'); return; }
+
+    DATA.lastSetPlayers = players;
+    saveData(DATA);
+    state.setDraft = {
+      id: uid(), date, players, numPlayers: players.length, numRounds, entryFee,
+      roundWinners: [], currentRound: 0
+    };
+    state.view = 'set-play';
+    render();
+  };
+}
+
+/* ---------------- SET PLAY ---------------- */
+function renderSetPlay(){
+  const g = state.setDraft;
+  const idx = g.currentRound;
+  const suit = SUITS[idx % 4];
+  const suitClass = SUIT_CLASS[idx % 4];
+  const pot = g.entryFee * g.players.length;
+  const playersBtns = g.players.map(p => `<div class="player-btn" data-player="${esc(p)}">${esc(p)}</div>`).join('');
+  let log = '';
+  if(g.roundWinners.length){
+    log = `<div class="scroll-x" style="margin-top:18px;"><table><thead><tr><th>Round</th><th>Winner</th></tr></thead><tbody>`
+      + g.roundWinners.map((w,i)=>`<tr><td>${i+1}</td><td class="name">${esc(w)}</td></tr>`).join('')
+      + `</tbody></table></div>`;
+  }
+  return `
+  <div class="card">
+    <div class="eyebrow">${esc(fmtDate(g.date))} · Entry ₹${g.entryFee} · Pot ₹${pot}</div>
+    <div class="round-banner"><span class="suit ${suitClass}">${suit}</span><h2>Round ${idx+1} of ${g.numRounds}</h2></div>
+    <p class="muted">Tap the winner of this round.</p>
+    <div class="winner-grid">${playersBtns}</div>
+    <div class="btn-row">
+      ${idx>0 ? '<button class="btn ghost small" id="set-undo">Undo last round</button>' : ''}
+    </div>
+    ${log}
+  </div>`;
+}
+function bindSetPlay(){
+  const g = state.setDraft;
+  document.querySelectorAll('.player-btn').forEach(btn=>{
+    btn.onclick = () => {
+      g.roundWinners.push(btn.dataset.player);
+      g.currentRound++;
+      if(g.currentRound >= g.numRounds){
+        g.results = computeSetResults(g);
+        DATA.setGames.push(g);
+        saveData(DATA);
+        state.lastFinishedSet = g;
+        state.setDraft = null;
+        state.view = 'set-summary';
+      }
+      render();
+    };
+  });
+  const undo = document.getElementById('set-undo');
+  if(undo) undo.onclick = () => {
+    g.roundWinners.pop();
+    g.currentRound = Math.max(0, g.currentRound-1);
+    render();
+  };
+}
+
+/* ---------------- SET SUMMARY ---------------- */
+function renderSetSummary(game, opts){
+  const results = game.results || computeSetResults(game);
+  const pot = game.entryFee * game.players.length;
+  const sorted = [...results].sort((a,b)=>b.net-a.net);
+  const rows = sorted.map(r => `
+    <tr>
+      <td class="name">${esc(r.name)} ${r.net === Math.max(...results.map(x=>x.net)) && r.net>0 ? '<span class="tag-win">TOP</span>' : ''}</td>
+      <td class="mono">${r.wins}</td>
+      <td class="mono">₹${r.gross}</td>
+      <td class="mono">₹${r.paid}</td>
+      <td class="mono ${r.net>=0?'pos':'neg'}">${fmt(r.net)}</td>
+    </tr>`).join('');
+  return `
+  <div class="card">
+    <div class="eyebrow">${esc(fmtDate(game.date))} · The Set · ${game.numRounds} rounds · Entry ₹${game.entryFee} · Pot ₹${pot}</div>
+    <h2>Results</h2>
+    <div class="scroll-x">
+    <table>
+      <thead><tr><th class="name">Player</th><th>Rounds Won</th><th>Gross</th><th>Paid In</th><th>Net</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    </div>
+    ${!opts.fromHistory ? `<div class="btn-row"><button class="btn primary" data-action="go-home">Back to Home</button><button class="btn gold" data-action="new-game">Start Another Game</button></div>` : ''}
+  </div>`;
+}
+
+/* ---------------- RUMMY SETUP ---------------- */
+function renderRummySetup(){
+  return `
+  <div class="card">
+    <div class="eyebrow">New Game</div>
+    <h2>American Rummy — Setup</h2>
+    <div class="row">
+      <div><label>Date</label><input type="date" id="rummy-date" value="${state.rummyDraft?.date || todayStr()}"></div>
+      <div><label>Entry fee (₹, per player, one time)</label><input type="number" id="rummy-entryfee" min="1" value="${state.rummyDraft?.entryFee || 50}"></div>
+    </div>
+    <label>Who's playing? <span class="count-label" id="rummy-count-label"></span></label>
+    <div class="roster-select" id="rummy-roster-list"></div>
+    <div class="add-player-row">
+      <input type="text" id="rummy-new-player" placeholder="Add a new player">
+      <button class="btn ghost small" id="rummy-add-player-btn" type="button">Add</button>
+    </div>
+    <button class="btn primary" id="rummy-start-btn">Start Game →</button>
+  </div>`;
+}
+function bindRummySetup(){
+  const picker = createRosterPicker('rummy-roster-list','rummy-new-player','rummy-add-player-btn','rummy-count-label', DATA.lastRummyPlayers);
+
+  document.getElementById('rummy-start-btn').onclick = () => {
+    const players = picker.getSelectedOrdered();
+    const entryFee = parseFloat(document.getElementById('rummy-entryfee').value);
+    const date = document.getElementById('rummy-date').value || todayStr();
+    if(players.length < 2){ alert('Select at least 2 players.'); return; }
+    if(!entryFee || entryFee<=0){ alert('Enter a valid entry fee.'); return; }
+
+    DATA.lastRummyPlayers = players;
+    saveData(DATA);
+    const cumulative = {}; players.forEach(p=>cumulative[p]=0);
+    state.rummyDraft = { id: uid(), date, players, numPlayers: players.length, entryFee, matches: [], cumulative, finished:false };
+    state.view = 'rummy-play';
+    render();
+  };
+}
+
+/* ---------------- RUMMY PLAY ---------------- */
+function renderScoreSheet(game){
+  const running = {}; game.players.forEach(p=>running[p]=0);
+  const outSince = {};
+  let rowsHtml = '';
+  game.matches.forEach((m, mi) => {
+    let cells = '';
+    game.players.forEach(p=>{
+      if(outSince[p] !== undefined){ cells += `<td class="muted">—</td>`; return; }
+      const pts = m.scores[p];
+      running[p] += Number(pts)||0;
+      const justOut = running[p] >= 100;
+      cells += `<td class="mono">${pts!==undefined?pts:''}${justOut?' <span class=\"tag-out\">OUT</span>':''}</td>`;
+      if(justOut) outSince[p] = mi;
+    });
+    rowsHtml += `<tr><td class="name mono">${mi+1}</td>${cells}</tr>`;
+  });
+  const totalCells = game.players.map(p=>`<td class="mono"><strong>${running[p]}</strong></td>`).join('');
+  return `
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th class="name">Hand</th>${game.players.map(p=>`<th>${esc(p)}</th>`).join('')}</tr></thead>
+    <tbody>${rowsHtml}</tbody>
+    <tfoot><tr><td class="name">Total</td>${totalCells}</tr></tfoot>
+  </table>
+  </div>`;
+}
+function renderRummyPlay(){
+  const g = state.rummyDraft;
+  recomputeCumulative(g);
+  const active = activePlayers(g);
+  const matchNum = g.matches.length + 1;
+  const pot = g.entryFee * g.players.length;
+  const inputs = active.map(p => `
+    <div>
+      <label>${esc(p)} <span class="muted">(current: ${g.cumulative[p]})</span></label>
+      <input type="number" class="rummy-pts" data-player="${esc(p)}" min="0" placeholder="0">
+    </div>`).join('');
+  return `
+  <div class="card">
+    <div class="eyebrow">${esc(fmtDate(g.date))} · Entry ₹${g.entryFee} · Pot ₹${pot} · Eliminate at 100</div>
+    <h2>Hand ${matchNum}</h2>
+    <p class="muted">Enter this hand's points for the players still in the game.</p>
+    <div class="players-grid">${inputs}</div>
+    <div class="btn-row">
+      <button class="btn primary" id="rummy-add-match">Add Hand</button>
+      ${g.matches.length>0 ? '<button class="btn ghost small" id="rummy-undo">Undo last hand</button>' : ''}
+    </div>
+    ${g.matches.length ? `<h3 style="margin-top:24px;font-size:16px;">Scoresheet</h3>${renderScoreSheet(g)}` : ''}
+  </div>`;
+}
+function bindRummyPlay(){
+  const g = state.rummyDraft;
+  document.getElementById('rummy-add-match').onclick = () => {
+    const inputs = document.querySelectorAll('.rummy-pts');
+    const scores = {};
+    let valid = true;
+    inputs.forEach(inp => {
+      const v = inp.value.trim() === '' ? 0 : parseInt(inp.value);
+      if(isNaN(v) || v<0){ valid = false; }
+      scores[inp.dataset.player] = v;
+    });
+    if(!valid){ alert('Points must be zero or a positive number.'); return; }
+    const wasActive = activePlayers(g);
+    g.matches.push({ scores });
+    recomputeCumulative(g);
+    const active = activePlayers(g);
+    const justOut = wasActive.filter(p => !active.includes(p));
+    
+    // Play points sound whenever a hand is added
+    playPointsSound();
+    
+    // Play out sound only if someone was knocked out
+    if(justOut.length > 0){ playOutSound(); }
+    
+    if(active.length <= 1){
+      finalizeRummy(g);
+      DATA.rummyGames.push(g);
+      saveData(DATA);
+      state.lastFinishedRummy = g;
+      state.rummyDraft = null;
+      
+      // Show winner modal with the winner's name
+      const winners = g.winners || [];
+      if(winners.length > 0){
+        showWinnerModal(winners[0]);
+      }
+      
+      state.view = 'rummy-summary';
+    }
+    render();
+  };
+  const undo = document.getElementById('rummy-undo');
+  if(undo) undo.onclick = () => { g.matches.pop(); recomputeCumulative(g); render(); };
+}
+
+/* ---------------- RUMMY SUMMARY ---------------- */
+function renderRummySummary(game, opts){
+  const results = game.results || (finalizeRummy(game), game.results);
+  const sorted = [...results].sort((a,b)=>b.net-a.net);
+  const rows = sorted.map(r => `
+    <tr>
+      <td class="name">${esc(r.name)} ${r.winner ? '<span class="tag-win">WINNER</span>' : ''}</td>
+      <td class="mono">${r.finalScore}</td>
+      <td class="mono">${r.received ? '₹'+Math.round(r.received) : '—'}</td>
+      <td class="mono ${r.net>=0?'pos':'neg'}">${fmt(r.net)}</td>
+    </tr>`).join('');
+  return `
+  <div class="card">
+    <div class="eyebrow">${esc(fmtDate(game.date))} · American Rummy · Entry ₹${game.entryFee} · Pot ₹${game.pot}</div>
+    <h2>Results</h2>
+    <div class="scroll-x">
+    <table>
+      <thead><tr><th class="name">Player</th><th>Final Score</th><th>Received</th><th>Net</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    </div>
+    <h3 style="margin-top:22px;font-size:16px;">Scoresheet</h3>
+    ${renderScoreSheet(game)}
+    ${!opts.fromHistory ? `<div class="btn-row"><button class="btn primary" data-action="go-home">Back to Home</button><button class="btn gold" data-action="new-game">Start Another Game</button></div>` : ''}
+  </div>`;
+}
+
+/* ---------------- HISTORY ---------------- */
+function computeLeaderboard(){
+  const totals = {};
+  DATA.setGames.forEach(g => {
+    (g.results || computeSetResults(g)).forEach(r => { totals[r.name] = (totals[r.name]||0) + r.net; });
+  });
+  DATA.rummyGames.forEach(g => {
+    (g.results || []).forEach(r => { totals[r.name] = (totals[r.name]||0) + r.net; });
+  });
+  return Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+}
+function renderHistory(){
+  const board = computeLeaderboard();
+  const boardHtml = board.length ? board.map(([name,net])=>`
+    <div class="leaderboard-row"><span>${esc(name)}</span><span class="mono ${net>=0?'pos':'neg'}">${fmt(net)}</span></div>
+  `).join('') : `<p class="muted">Play a game to see the leaderboard.</p>`;
+
+  const allGames = [
+    ...DATA.setGames.map(g=>({...g, type:'set'})),
+    ...DATA.rummyGames.map(g=>({...g, type:'rummy'}))
+  ].sort((a,b) => (b.date+b.id).localeCompare(a.date+a.id));
+
+  const list = allGames.length ? allGames.map(g => {
+    const isOpen = state.historyOpen[g.type+g.id];
+    const label = g.type === 'set' ? 'The Set' : 'American Rummy';
+    const detail = g.type === 'set' ? renderSetSummary(g, {fromHistory:true}) : renderRummySummary(g, {fromHistory:true});
+    return `
+    <div class="history-item-wrap">
+      <div class="history-item">
+        <div>
+          <strong>${label}</strong>
+          <div class="meta">${esc(fmtDate(g.date))} · ${g.players.length} players · Entry ₹${g.entryFee}</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn ghost small" data-toggle="${g.type}${g.id}">${isOpen?'Hide':'View'} details</button>
+          <button class="btn danger small" data-delete="${g.type}:${g.id}">Delete</button>
+        </div>
+      </div>
+      ${isOpen ? detail : ''}
+    </div>`;
+  }).join('') : `<div class="empty"><div class="pip">♣</div>No games logged yet. Start one from the Home tab.</div>`;
+
+  return `
+  <div class="card">
+    <h2>Players</h2>
+    <p class="muted" style="margin-top:-2px;">The group roster used when starting a new game.</p>
+    <div class="roster-select" id="manage-roster-list"></div>
+    <div class="add-player-row">
+      <input type="text" id="manage-new-player" placeholder="Add a new player">
+      <button class="btn ghost small" id="manage-add-player-btn" type="button">Add</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Leaderboard</h2>
+    <p class="muted" style="margin-top:-2px;">Net winnings across every game logged in this browser.</p>
+    ${boardHtml}
+  </div>
+  <div class="card">
+    <h2>Game History</h2>
+    ${list}
+  </div>`;
+}
+function bindHistory(){
+  document.querySelectorAll('[data-toggle]').forEach(btn=>{
+    btn.onclick = () => {
+      const key = btn.dataset.toggle;
+      state.historyOpen[key] = !state.historyOpen[key];
+      render();
+    };
+  });
+  document.querySelectorAll('[data-delete]').forEach(btn=>{
+    btn.onclick = () => {
+      const [type, id] = btn.dataset.delete.split(':');
+      if(!confirm('Delete this game permanently?')) return;
+      if(type==='set') DATA.setGames = DATA.setGames.filter(g=>g.id!==id);
+      else DATA.rummyGames = DATA.rummyGames.filter(g=>g.id!==id);
+      saveData(DATA);
+      render();
+    };
+  });
+
+  const manageList = document.getElementById('manage-roster-list');
+  function drawManageRoster(){
+    manageList.innerHTML = DATA.roster.map(name => `
+      <div class="chip static">
+        <span class="chip-label">${esc(name)}</span>
+        <span class="chip-x" data-remove="${esc(name)}" title="Remove from player list">✕</span>
+      </div>`).join('') || '<p class="muted">No players yet — add one below.</p>';
+    manageList.querySelectorAll('.chip-x').forEach(x => {
+      x.onclick = () => {
+        const n = x.dataset.remove;
+        if(confirm(`Remove "${n}" from the player list? Past game history won't be affected.`)){
+          DATA.roster = DATA.roster.filter(p => p !== n);
+          saveData(DATA);
+          drawManageRoster();
+        }
+      };
+    });
+  }
+  drawManageRoster();
+  const manageInput = document.getElementById('manage-new-player');
+  function addManagePlayer(){
+    const name = manageInput.value.trim();
+    if(!name) return;
+    if(DATA.roster.some(p => p.toLowerCase() === name.toLowerCase())){ alert('That player is already in the list.'); return; }
+    DATA.roster.push(name);
+    saveData(DATA);
+    manageInput.value = '';
+    drawManageRoster();
+    manageInput.focus();
+  }
+  document.getElementById('manage-add-player-btn').onclick = addManagePlayer;
+  manageInput.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); addManagePlayer(); } });
+}
+
+/* ---------------- init ---------------- */
+render();
+</script>
+</body>
+</html>
