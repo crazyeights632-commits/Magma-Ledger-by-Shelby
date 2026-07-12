@@ -378,19 +378,19 @@ function playOutSound(){
   const audio = document.getElementById('out-sound');
   if(!audio) return;
   audio.currentTime = 0;
-  audio.play().catch(()=>{}); // ignore if browser blocks autoplay before any interaction
+  audio.play().catch(err => console.warn('Out sound failed to play:', err));
 }
 function playPointsSound(){
   const audio = document.getElementById('points-sound');
   if(!audio) return;
   audio.currentTime = 0;
-  audio.play().catch(()=>{}); // ignore if browser blocks autoplay before any interaction
+  audio.play().catch(err => console.warn('Points sound failed to play:', err));
 }
 function playWinnerSound(){
   const audio = document.getElementById('winner-sound');
   if(!audio) return;
   audio.currentTime = 0;
-  audio.play().catch(()=>{}); // ignore if browser blocks autoplay before any interaction
+  audio.play().catch(err => console.warn('Winner sound failed to play:', err));
 }
 
 function showWinnerModal(winnerName){
@@ -879,8 +879,10 @@ function bindRummyPlay(){
     // Play points sound whenever a hand is added
     playPointsSound();
     
-    // Play out sound only if someone was knocked out
-    if(justOut.length > 0){ playOutSound(); }
+    // Play out sound only if someone was knocked out — but not on the game-ending
+    // hand, since that would race the winner sound (same audio file, near-simultaneous
+    // play() calls can get silently dropped by the browser). Winner sound takes priority.
+    if(justOut.length > 0 && active.length > 1){ playOutSound(); }
     
     if(active.length <= 1){
       finalizeRummy(g);
