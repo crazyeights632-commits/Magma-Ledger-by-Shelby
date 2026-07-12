@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Magma Ledger — Card Game Tracker</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23150e0a'/%3E%3Ctext x='50' y='68' font-s[...]
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23150e0a'/%3E%3Ctext x='50' y='68' font-size='60' font-weight='700' font-family='serif' text-anchor='middle' fill='%23e0a63e'%3E♠%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap[...]
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --felt:#170f0a;
@@ -144,7 +144,7 @@
   .tag-win{ background:var(--gold); color:var(--felt-dark); font-size:10.5px; padding:2px 7px; border-radius:5px; font-weight:700; letter-spacing:.03em; }
   .scroll-x{ overflow-x:auto; }
 
-  .history-item{ border:1px solid var(--cream-dark); border-radius:10px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wra[...]
+  .history-item{ border:1px solid var(--cream-dark); border-radius:10px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   .history-item .meta{ font-size:13px; color:#5a5540; }
   .leaderboard-row{ display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); }
   .empty{ text-align:center; padding:40px 10px; color:#5a5540; }
@@ -168,13 +168,36 @@
 <div id="app"></div>
 
 <!-- Sound played whenever a player crosses 100 and is knocked out of an American Rummy game -->
-<audio id="out-sound" src="out-sound.mp3" preload="auto"></audio>
+<audio id="out-sound" preload="auto">
+  <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAAA=" type="audio/wav">
+</audio>
 
 <!-- Sound played whenever points are entered in American Rummy -->
-<audio id="points-sound" src="points-sound.mp3" preload="auto"></audio>
+<audio id="points-sound" preload="auto">
+  <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAAA=" type="audio/wav">
+</audio>
 
 <script>
 'use strict';
+
+/* Generate simple beep sounds */
+function generateBeepSound(frequency, duration) {
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.frequency.value = frequency;
+  oscillator.type = 'sine';
+  
+  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + duration);
+}
 
 /* ---------------- storage ---------------- */
 const STORAGE_KEY = 'magmaLedgerData_v1';
@@ -249,16 +272,14 @@ function activePlayers(game){
   return game.players.filter(p => game.cumulative[p] < 100);
 }
 function playOutSound(){
-  const audio = document.getElementById('out-sound');
-  if(!audio) return;
-  audio.currentTime = 0;
-  audio.play().catch(()=>{}); // ignore if browser blocks autoplay before any interaction
+  try {
+    generateBeepSound(880, 0.2); // High pitch beep (A5)
+  } catch(e) {}
 }
 function playPointsSound(){
-  const audio = document.getElementById('points-sound');
-  if(!audio) return;
-  audio.currentTime = 0;
-  audio.play().catch(()=>{}); // ignore if browser blocks autoplay before any interaction
+  try {
+    generateBeepSound(440, 0.1); // Medium pitch beep (A4)
+  } catch(e) {}
 }
 function finalizeRummy(game){
   recomputeCumulative(game);
@@ -608,7 +629,7 @@ function renderSetSummary(game, opts){
       <tbody>${rows}</tbody>
     </table>
     </div>
-    ${!opts.fromHistory ? `<div class="btn-row"><button class="btn primary" data-action="go-home">Back to Home</button><button class="btn gold" data-action="new-game">Start Another Game</button><[...]
+    ${!opts.fromHistory ? `<div class="btn-row"><button class="btn primary" data-action="go-home">Back to Home</button><button class="btn gold" data-action="new-game">Start Another Game</button></div>` : ''}
   </div>`;
 }
 
@@ -762,7 +783,7 @@ function renderRummySummary(game, opts){
     </div>
     <h3 style="margin-top:22px;font-size:16px;">Scoresheet</h3>
     ${renderScoreSheet(game)}
-    ${!opts.fromHistory ? `<div class="btn-row"><button class="btn primary" data-action="go-home">Back to Home</button><button class="btn gold" data-action="new-game">Start Another Game</button><[...]
+    ${!opts.fromHistory ? `<div class="btn-row"><button class="btn primary" data-action="go-home">Back to Home</button><button class="btn gold" data-action="new-game">Start Another Game</button></div>` : ''}
   </div>`;
 }
 
