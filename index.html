@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Magma Ledger — Card Game Tracker</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23150e0a'/%3E%3Ctext x='50' y='68' font-size='60' font-weight='700' font-family='serif' text-anchor='middle' fill='%23e0a63e'%3E♠%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23150e0a'/%3E%3Ctext x='50' y='68' font-s[...]
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap[...]
 <style>
   :root{
     --felt:#170f0a;
@@ -144,7 +144,7 @@
   .tag-win{ background:var(--gold); color:var(--felt-dark); font-size:10.5px; padding:2px 7px; border-radius:5px; font-weight:700; letter-spacing:.03em; }
   .scroll-x{ overflow-x:auto; }
 
-  .history-item{ border:1px solid var(--cream-dark); border-radius:10px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  .history-item{ border:1px solid var(--cream-dark); border-radius:10px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wra[...]
   .history-item .meta{ font-size:13px; color:#5a5540; }
   .leaderboard-row{ display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); }
   .empty{ text-align:center; padding:40px 10px; color:#5a5540; }
@@ -157,10 +157,62 @@
   .founder-quote{ font-family:'Fraunces',serif; font-style:italic; font-weight:600; font-size:17px; color:var(--gold); margin:0 0 6px; }
   .founder-quote span{ font-style:normal; font-family:'Inter',sans-serif; font-weight:600; font-size:12px; color:rgba(255,255,255,0.6); letter-spacing:.03em; }
   .founder-copyright{ font-size:11.5px; color:rgba(255,255,255,0.4); margin:0; letter-spacing:.02em; }
+
+  /* Winner Popup Styles */
+  .modal-overlay{
+    position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); 
+    display:flex; align-items:center; justify-content:center; z-index:9999;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn{
+    from{ opacity:0; }
+    to{ opacity:1; }
+  }
+  .winner-modal{
+    background:var(--cream); border-radius:20px; padding:40px 30px; text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,0.8); max-width:500px; width:90%;
+    animation: popUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes popUp{
+    from{ transform:scale(0.7) translateY(20px); opacity:0; }
+    to{ transform:scale(1) translateY(0); opacity:1; }
+  }
+  .winner-modal h1{
+    font-size:48px; color:var(--gold); margin-bottom:10px; font-style:italic;
+  }
+  .winner-modal .winner-name{
+    font-size:42px; font-weight:700; color:var(--red); margin-bottom:20px;
+    font-family:'Fraunces',serif;
+  }
+  .winner-modal .quote{
+    font-size:18px; font-style:italic; color:var(--ink); margin:20px 0;
+    line-height:1.6; font-family:'Fraunces',serif;
+  }
+  .winner-modal .trophy{ font-size:60px; margin:20px 0; animation:bounce 1s infinite; }
+  @keyframes bounce{
+    0%, 100%{ transform:translateY(0); }
+    50%{ transform:translateY(-20px); }
+  }
+  .winner-modal button{
+    margin-top:30px;
+  }
+
   @media (max-width:520px){
     .brand h1{ font-size:26px; }
     table{ font-size:12.5px; }
     th,td{ padding:6px; }
+    .winner-modal{
+      padding:30px 20px;
+    }
+    .winner-modal h1{
+      font-size:36px;
+    }
+    .winner-modal .winner-name{
+      font-size:32px;
+    }
+    .winner-modal .trophy{
+      font-size:48px;
+    }
   }
 </style>
 </head>
@@ -172,6 +224,9 @@
 
 <!-- Sound played whenever points are entered in American Rummy -->
 <audio id="points-sound" src="points-sound.mp3" preload="auto"></audio>
+
+<!-- Sound played when there's a winner in American Rummy -->
+<audio id="winner-sound" src="out-sound.mp3" preload="auto"></audio>
 
 <script>
 'use strict';
@@ -260,6 +315,37 @@ function playPointsSound(){
   audio.currentTime = 0;
   audio.play().catch(()=>{}); // ignore if browser blocks autoplay before any interaction
 }
+function playWinnerSound(){
+  const audio = document.getElementById('winner-sound');
+  if(!audio) return;
+  audio.currentTime = 0;
+  audio.play().catch(()=>{}); // ignore if browser blocks autoplay before any interaction
+}
+
+function showWinnerModal(winnerName){
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="winner-modal">
+      <h1>Congratulations!</h1>
+      <div class="trophy">🏆</div>
+      <div class="winner-name">${esc(winnerName)}</div>
+      <div class="quote">
+        "No Wife can endure a gambler;<br>Unless he is a WINNER"
+      </div>
+      <button class="btn gold" id="close-winner-modal">Continue</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  // Play winner sound
+  playWinnerSound();
+  
+  document.getElementById('close-winner-modal').onclick = () => {
+    modal.remove();
+  };
+}
+
 function finalizeRummy(game){
   recomputeCumulative(game);
   const minScore = Math.min(...game.players.map(p => game.cumulative[p]));
@@ -731,6 +817,13 @@ function bindRummyPlay(){
       saveData(DATA);
       state.lastFinishedRummy = g;
       state.rummyDraft = null;
+      
+      // Show winner modal with the winner's name
+      const winners = g.winners || [];
+      if(winners.length > 0){
+        showWinnerModal(winners[0]);
+      }
+      
       state.view = 'rummy-summary';
     }
     render();
